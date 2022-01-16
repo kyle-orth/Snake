@@ -2,16 +2,15 @@
 Basic game: Snake. Run using PyGame.
 https://github.com/kyle-orth/snake.git
 """
-import os
 import random
 import pygame as pg
 
-os.environ['SDL_VIDEO_WINDOW_POS'] = "30, 50"
 windowSize = (540, 540)
 tileSize = 30
 cols = windowSize[0] / tileSize - 2
 rows = windowSize[1] / tileSize - 2
 running = True
+speed = 6
 
 
 class Apple:
@@ -40,9 +39,8 @@ class Snake:
         new_pos = (self.pos[0] + self.direction[0], self.pos[1] + self.direction[1])
         self.pos = new_pos
         self.coords.append(self.pos)
-        if len(self.coords) >= self.length:
+        if len(self.coords) > self.length:
             self.coords.pop(0)
-        print(self.coords)
 
     def draw(self, window):
         for pos in self.coords:
@@ -61,8 +59,43 @@ class Game:
         self.score = 0
         self.active = True
         self.done = False
+        self.endscreen_timer = int(speed*2)
         self.snake = self.setup_snake()
         self.apple = Apple(self.snake.coords)
+
+    def update(self):
+        if self.done:
+            self.quit()
+            return
+        if self.active:
+            self.input()
+            self.snake.move()
+            self.collisions()
+            self.score = self.snake.length - 4
+        else:
+            self.end_input()
+
+    def draw(self):
+        if self.done:
+            return
+        if self.active:
+            self.display()
+        else:
+            self.end_display()
+        pg.display.flip()
+
+    def reset(self):
+        self.score = 0
+        self.active = True
+        self.endscreen_timer = int(speed*2)
+        self.snake = self.setup_snake()
+        self.apple = Apple(self.snake.coords)
+
+    @staticmethod
+    def quit():
+        global running
+        running = False
+        pg.quit()
 
     @staticmethod
     def setup_snake():
@@ -80,8 +113,7 @@ class Game:
             self.done = True
         else:
             new_direction = Input.direction(events, self.snake.direction)
-            if type(new_direction) == tuple:
-                self.snake.direction = new_direction
+            self.snake.direction = new_direction
 
     def collisions(self):
         # Apple collision
@@ -91,12 +123,10 @@ class Game:
 
         # Snake collision
         if self.snake.coords.count(self.snake.pos) != 1:
-            print(self.snake.coords)
-            print(self.snake.pos)
             self.active = False
 
         # Border collision
-        if self.snake.pos[0] < 0 or self.snake.pos[0] > cols or self.snake.pos[1] < 0 or self.snake.pos[1] > rows:
+        if self.snake.pos[0] < 1 or self.snake.pos[0] > cols or self.snake.pos[1] < 1 or self.snake.pos[1] > rows:
             self.active = False
 
     def display(self):
@@ -104,6 +134,10 @@ class Game:
         self.apple.draw(self.window)
         self.snake.draw(self.window)
         pg.draw.rect(self.window, "white", self.border, 4)
+        score = Text(str(self.score), color="white")
+        score.rect.center = (windowSize[0] / 2, int(tileSize * 1.75))
+        score.draw(self.window)
+        # On the last frame of the active game, darken display
         if not self.active:
             self.darken_display()
 
@@ -112,7 +146,8 @@ class Game:
         if Input.quit(events):
             self.done = True
         elif Input.any_key(events):
-            self.reset()
+            if self.endscreen_timer == 0:
+                self.reset()
 
     def darken_display(self):
         shade = pg.Surface(windowSize)
@@ -123,36 +158,12 @@ class Game:
         txt1 = Text('Score: ' + str(self.score), size=24, color="white")
         txt1.rect.center = (windowSize[0] / 2, windowSize[1] / 2 - 30)
         txt1.draw(self.window)
-        txt2 = Text('(Press any key to play again)', size=18, color="white")
-        txt2.rect.center = (windowSize[0] / 2, windowSize[1] / 2 + 30)
-        txt2.draw(self.window)
-
-    def update(self):
-        if self.done:
-            self.quit()
-            return
-        if self.active:
-            self.input()
-            self.snake.move()
-            self.collisions()
-            self.display()
+        if self.endscreen_timer == 0:
+            txt2 = Text('(Press any key to play again)', size=18, color="white")
+            txt2.rect.center = (windowSize[0] / 2, windowSize[1] / 2 + 30)
+            txt2.draw(self.window)
         else:
-            self.end_input()
-            self.end_display()
-
-        pg.display.flip()
-
-    def reset(self):
-        self.score = 0
-        self.active = True
-        self.snake = self.setup_snake()
-        self.apple = Apple()
-
-    @staticmethod
-    def quit():
-        global running
-        running = False
-        pg.quit()
+            self.endscreen_timer -= 1
 
 
 class Input:
@@ -162,19 +173,24 @@ class Input:
     @staticmethod
     def direction(events, current_direction):
         for event in events:
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_UP:
-                    if current_direction[1] != 1:
-                        current_direction = (0, -1)
-                elif event.key == pg.K_DOWN:
-                    if current_direction[1] != -1:
-                        current_direction = (0, 1)
-                elif event.key == pg.K_LEFT:
-                    if current_direction[0] != 1 and current_direction != (0, 0):
-                        current_direction = (-1, 0)
-                elif event.key == pg.K_RIGHT:
-                    if current_direction[0] != -1:
-                        current_direction = (1, 0)
+            if event.type != pg.KEYDOWN:
+                continue
+            if event.key == pg.K_UP:
+                if current_direction != (0, 1):
+                    current_direction = (0, -1)
+                    break
+            elif event.key == pg.K_DOWN:
+                if current_direction != (0, -1):
+                    current_direction = (0, 1)
+                    break
+            elif event.key == pg.K_LEFT:
+                if current_direction != (1, 0) and current_direction != (0, 0):
+                    current_direction = (-1, 0)
+                    break
+            elif event.key == pg.K_RIGHT:
+                if current_direction != (-1, 0):
+                    current_direction = (1, 0)
+                    break
         return current_direction
 
     @staticmethod
@@ -220,8 +236,9 @@ def run():
     game = Game()
     clock = pg.time.Clock()
     while running:
-        clock.tick(5)
+        clock.tick(speed)
         game.update()
+        game.draw()
 
 
 if __name__ == "__main__":
