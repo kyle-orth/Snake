@@ -4,6 +4,7 @@ https://github.com/kyle-orth/snake.git
 """
 import random
 import pygame as pg
+from resources import Text, Input
 
 windowSize = (540, 540)
 tileSize = 30
@@ -49,23 +50,19 @@ class Snake:
 
 
 class Game:
-    def __init__(self):
-        pg.init()
-        self.window = pg.display.set_mode((windowSize[0], windowSize[1]))
-        pg.display.set_caption("Snake")
-        self.clock = pg.time.Clock()
+    def __init__(self, pygame_window):
+        self.window = pygame_window
         self.border = pg.Rect(tileSize, tileSize, cols*tileSize, rows*tileSize)
+        self.done = False
 
         self.score = 0
         self.active = True
-        self.done = False
         self.endscreen_timer = int(speed*2)
         self.snake = self.setup_snake()
         self.apple = Apple(self.snake.coords)
 
     def update(self):
         if self.done:
-            self.quit()
             return
         if self.active:
             self.input()
@@ -109,8 +106,9 @@ class Game:
 
     def input(self):
         events = pg.event.get()
-        if Input.quit(events):
+        if Input.quit(events) or Input.escape(events):
             self.done = True
+            pg.quit()
         else:
             new_direction = Input.direction(events, self.snake.direction)
             self.snake.direction = new_direction
@@ -129,113 +127,50 @@ class Game:
         if self.snake.pos[0] < 1 or self.snake.pos[0] > cols or self.snake.pos[1] < 1 or self.snake.pos[1] > rows:
             self.active = False
 
+    def end_input(self):
+        events = pg.event.get()
+        if Input.quit(events) or Input.escape(events):
+            self.done = True
+            pg.quit()
+        elif Input.any_key(events):
+            if self.endscreen_timer == 0:
+                self.reset()
+
     def display(self):
         self.window.fill("black")
         self.apple.draw(self.window)
         self.snake.draw(self.window)
         pg.draw.rect(self.window, "white", self.border, 4)
+
         score = Text(str(self.score), color="white")
         score.rect.center = (windowSize[0] / 2, int(tileSize * 1.75))
         score.draw(self.window)
+
         # On the last frame of the active game, darken display
         if not self.active:
-            self.darken_display()
-
-    def end_input(self):
-        events = pg.event.get()
-        if Input.quit(events):
-            self.done = True
-        elif Input.any_key(events):
-            if self.endscreen_timer == 0:
-                self.reset()
-
-    def darken_display(self):
-        shade = pg.Surface(windowSize)
-        shade.set_alpha(160)
-        self.window.blit(shade, (0, 0))
+            shade = pg.Surface(windowSize)
+            shade.set_alpha(160)
+            self.window.blit(shade, (0, 0))
 
     def end_display(self):
-        txt1 = Text('Score: ' + str(self.score), size=24, color="white")
-        txt1.rect.center = (windowSize[0] / 2, windowSize[1] / 2 - 30)
-        txt1.draw(self.window)
+        score = Text('Score: ' + str(self.score), size=24, color="white")
+        score.rect.center = (windowSize[0] / 2, windowSize[1] / 2 - 30)
+        score.draw(self.window)
         if self.endscreen_timer == 0:
-            txt2 = Text('(Press any key to play again)', size=18, color="white")
-            txt2.rect.center = (windowSize[0] / 2, windowSize[1] / 2 + 30)
-            txt2.draw(self.window)
+            play_again = Text('(Press any key to play again)', size=18, color="white")
+            play_again.rect.center = (windowSize[0] / 2, windowSize[1] / 2 + 30)
+            play_again.draw(self.window)
         else:
             self.endscreen_timer -= 1
 
 
-class Input:
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def direction(events, current_direction):
-        for event in events:
-            if event.type != pg.KEYDOWN:
-                continue
-            if event.key == pg.K_UP:
-                if current_direction != (0, 1):
-                    current_direction = (0, -1)
-                    break
-            elif event.key == pg.K_DOWN:
-                if current_direction != (0, -1):
-                    current_direction = (0, 1)
-                    break
-            elif event.key == pg.K_LEFT:
-                if current_direction != (1, 0) and current_direction != (0, 0):
-                    current_direction = (-1, 0)
-                    break
-            elif event.key == pg.K_RIGHT:
-                if current_direction != (-1, 0):
-                    current_direction = (1, 0)
-                    break
-        return current_direction
-
-    @staticmethod
-    def any_key(events):
-        for event in events:
-            if event.type == pg.KEYDOWN:
-                return True
-        return False
-
-    @staticmethod
-    def quit(events):
-        for event in events:
-            if event.type == pg.QUIT:
-                return True
-            elif event.type == pg.KEYDOWN:
-                key = event.key
-                if key == pg.K_ESCAPE:
-                    return True
-        return False
-
-
-class Text:
-    def __init__(self, text, font='comicsansms', size=24, color='black', bold=False, italics=False, bg_color=None):
-        self.text = text
-        self.font = pg.font.SysFont(font, size, bold, italics)
-        self.color = color
-        self.bg_color = bg_color
-        self.img = None
-        self.rect = None
-
-        self.prep()
-
-    def prep(self):
-        self.img = self.font.render(self.text, True, self.color, self.bg_color)
-        self.rect = self.img.get_rect()
-        self.rect.topleft = (0, 0)
-
-    def draw(self, window):
-        window.blit(self.img, self.rect)
-
-
 def run():
-    game = Game()
+    pg.init()
+    window = pg.display.set_mode((windowSize[0], windowSize[1]))
+    pg.display.set_caption("Snake")
+    game = Game(window)
     clock = pg.time.Clock()
-    while running:
+    while not game.done:
         clock.tick(speed)
         game.update()
         game.draw()
