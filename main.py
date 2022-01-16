@@ -11,6 +11,7 @@ windowSize = (700, 540)
 tileSize = 20
 cols = windowSize[0] / tileSize - 2
 rows = windowSize[1] / tileSize - 2
+running = True
 
 
 class Apple:
@@ -49,14 +50,15 @@ class Snake:
 class Game:
     def __init__(self):
         pg.init()
-        self.window = pg.display.set_mode(windowSize[0], windowSize[1])
+        self.window = pg.display.set_mode((windowSize[0], windowSize[1]))
         pg.display.set_caption("Snake")
         self.clock = pg.time.Clock()
+        self.border = pg.Rect(tileSize, tileSize, cols*tileSize, rows*tileSize)
 
         self.score = 0
+        self.active = True
         self.snake = self.setup_snake()
         self.apple = Apple()
-        self.border = pg.Rect(tileSize, tileSize, cols*tileSize, rows*tileSize)
 
     @staticmethod
     def setup_snake():
@@ -68,6 +70,15 @@ class Game:
         snake.coords.append([6, 8])
         return snake
 
+    def input(self):
+        events = pg.event.get()
+        if Input.quit(events):
+            self.quit()
+        else:
+            new_direction = Input.direction(events, self.snake.direction)
+            if type(new_direction) == tuple:
+                self.snake.direction = new_direction
+
     def collisions(self):
         # Apple collision
         if self.snake.pos == self.apple.pos:
@@ -76,33 +87,60 @@ class Game:
 
         # Snake collision
         if self.snake.coords.count(self.snake.pos) != 1:
-            self.end()
+            self.active = False
 
         # Border collision
         if self.snake.pos[0] < 0 or self.snake.pos[0] > cols or self.snake.pos[1] < 0 or self.snake.pos[1] > rows:
-            self.end()
-
-    def input(self):
-        events = pg.event.get()
-        if Input.quit(events):
-            pg.quit()
-        else:
-            new_direction = Input.direction(events, self.snake.direction)
-            if type(new_direction) == tuple:
-                self.snake.direction = new_direction
+            self.active = False
 
     def display(self):
-        pass
+        self.window.fill("black")
+        self.apple.draw(self.window)
+        self.snake.draw(self.window)
+        pg.draw.rect(self.window, "white", self.border, 4)
+        if not self.active:
+            self.darken_display()
+
+    def end_input(self):
+        events = pg.event.get()
+        if Input.quit(events):
+            self.quit()
+        elif Input.any_key(events):
+            self.reset()
+
+    def darken_display(self):
+        shade = pg.Surface(windowSize)
+        shade.set_alpha(160)
+        self.window.blit(shade, (0, 0))
+
+    def end_display(self):
+        txt1 = Text('Score: ' + str(self.score), size=24, color="white")
+        txt1.rect.center = (windowSize[0] / 2, windowSize[1] / 2 - 30)
+        txt1.draw(self.window)
+        txt2 = Text('(Press any key to play again)', size=18, color="white")
+        txt2.rect.center = (windowSize[0] / 2, windowSize[1] / 2 + 30)
+        txt2.draw(self.window)
 
     def update(self):
-        self.collisions()
-        self.input()
-        self.display()
+        if self.active:
+            self.input()
+            self.collisions()
+            self.display()
+        else:
+            self.end_input()
+            self.end_display()
 
-    def end(self):
-        shade = pg.Surface(windowSize)
-        shade.set_alpha(128)
-        self.window.blit(shade, (0, 0))
+    def reset(self):
+        self.score = 0
+        self.active = True
+        self.snake = self.setup_snake()
+        self.apple = Apple()
+
+    @staticmethod
+    def quit():
+        global running
+        running = False
+        pg.quit()
 
 
 class Input:
@@ -132,6 +170,13 @@ class Input:
         return current_direction
 
     @staticmethod
+    def any_key(events):
+        for event in events:
+            if event.type is pg.KEYDOWN:
+                return True
+        return False
+
+    @staticmethod
     def quit(events):
         for event in events:
             if event.type is pg.QUIT:
@@ -143,24 +188,34 @@ class Input:
         return False
 
 
-class Display:
-    def __init__(self):
-        pass
-
-
 class Text:
-    def __init__(self):
-        pass
+    def __init__(self, text, font='comicsansms', size=24, color='black', bold=False, italics=False, bg_color=None):
+        self.text = text
+        self.font = pg.font.SysFont(font, size, bold, italics)
+        self.color = color
+        self.bg_color = bg_color
+        self.img = None
+        self.rect = None
+
+        self.prep()
+
+    def prep(self):
+        self.img = self.font.render(self.text, True, self.color, self.bg_color)
+        self.rect = self.img.get_rect()
+        self.rect.topleft = (0, 0)
+
+    def draw(self, window):
+        window.blit(self.img, self.rect)
 
 
 def run():
     game = Game()
     clock = pg.time.Clock()
-    while True:
-        clock.tick(20)
+    while running:
+        clock.tick(5)
         game.update()
+        pg.display.flip()
 
 
 if __name__ == "__main__":
-    pass
-    # run()
+    run()
