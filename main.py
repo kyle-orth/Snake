@@ -4,7 +4,7 @@ https://github.com/kyle-orth/snake.git
 """
 import random
 import pygame as pg
-from resources import Text, Input
+from resources import Text, Input, Highscore
 
 windowSize = (540, 540)
 tileSize = 30
@@ -54,8 +54,10 @@ class Game:
         self.window = pygame_window
         self.border = pg.Rect(tileSize, tileSize, cols*tileSize, rows*tileSize)
         self.done = False
+        self.highscore = Highscore.retrieve_hs()
 
         self.score = 0
+        self.new_best = False
         self.active = True
         self.endscreen_timer = int(speed*2)
         self.snake = self.setup_snake()
@@ -68,7 +70,7 @@ class Game:
             self.input()
             self.snake.move()
             self.collisions()
-            self.score = self.snake.length - 4
+            self.update_score()
         else:
             self.end_input()
 
@@ -84,9 +86,16 @@ class Game:
     def reset(self):
         self.score = 0
         self.active = True
+        self.new_best = False
         self.endscreen_timer = int(speed*2)
         self.snake = self.setup_snake()
         self.apple = Apple(self.snake.coords)
+
+    def update_score(self):
+        self.score = self.snake.length - 4
+        if self.score >= self.highscore:
+            self.highscore = self.score
+            self.new_best = True
 
     @staticmethod
     def quit():
@@ -132,8 +141,12 @@ class Game:
         if Input.quit(events) or Input.escape(events):
             self.done = True
             pg.quit()
+            if self.new_best:
+                Highscore.save_hs(self.highscore)
         elif Input.any_key(events):
             if self.endscreen_timer == 0:
+                if self.new_best:
+                    Highscore.save_hs(self.highscore)
                 self.reset()
 
     def display(self):
@@ -146,6 +159,10 @@ class Game:
         score.rect.center = (windowSize[0] / 2, int(tileSize * 1.75))
         score.draw(self.window)
 
+        highscore = Text(str(self.highscore), color="white")
+        highscore.rect.midright = (windowSize[0] - tileSize*1.75, int(tileSize * 1.75))
+        highscore.draw(self.window)
+
         # On the last frame of the active game, darken display
         if not self.active:
             shade = pg.Surface(windowSize)
@@ -153,7 +170,11 @@ class Game:
             self.window.blit(shade, (0, 0))
 
     def end_display(self):
-        score = Text('Score: ' + str(self.score), size=24, color="white")
+        if self.new_best:
+            text = 'Congrats!!  New High Score: ' + str(self.score)
+        else:
+            text = 'Score: ' + str(self.score)
+        score = Text(text, size=24, color="white")
         score.rect.center = (windowSize[0] / 2, windowSize[1] / 2 - 30)
         score.draw(self.window)
         if self.endscreen_timer == 0:

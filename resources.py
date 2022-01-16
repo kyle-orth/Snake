@@ -68,3 +68,26 @@ class Input:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     return True
+
+
+class Highscore:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def retrieve_hs():
+        try:
+            with open('highscore.pickle', 'r') as file:
+                return int(file.read())
+        except FileNotFoundError:
+            return 0
+
+    @staticmethod
+    def save_hs(hs):
+        with open('highscore.pickle', 'w') as file:
+            file.write(str(hs))
+
+    @staticmethod
+    def reset_hs():
+        with open('highscore.pickle', 'w') as file:
+            file.write('0')
