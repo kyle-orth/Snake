@@ -20,7 +20,7 @@ class Apple:
         self.color = color
 
     def draw(self, window):
-        rect = pg.Rect(self.pos[0], self.pos[1], tileSize, tileSize)
+        rect = pg.Rect(self.pos[0]*tileSize, self.pos[1]*tileSize, tileSize, tileSize)
         pg.draw.rect(window, self.color, rect)
 
 
@@ -43,7 +43,7 @@ class Snake:
 
     def draw(self, window):
         for pos in self.coords:
-            rect = pg.Rect(pos[0], pos[1], tileSize, tileSize)
+            rect = pg.Rect(pos[0]*tileSize, pos[1]*tileSize, tileSize, tileSize)
             pg.draw.rect(window, self.color, rect)
 
 
@@ -57,6 +57,7 @@ class Game:
 
         self.score = 0
         self.active = True
+        self.done = False
         self.snake = self.setup_snake()
         self.apple = Apple()
 
@@ -64,16 +65,16 @@ class Game:
     def setup_snake():
         snake = Snake()
         snake.pos = (9, 8)
-        snake.coords.append([9, 8])
-        snake.coords.append([8, 8])
-        snake.coords.append([7, 8])
-        snake.coords.append([6, 8])
+        snake.coords.append((9, 8))
+        snake.coords.append((8, 8))
+        snake.coords.append((7, 8))
+        snake.coords.append((6, 8))
         return snake
 
     def input(self):
         events = pg.event.get()
         if Input.quit(events):
-            self.quit()
+            self.done = True
         else:
             new_direction = Input.direction(events, self.snake.direction)
             if type(new_direction) == tuple:
@@ -87,6 +88,8 @@ class Game:
 
         # Snake collision
         if self.snake.coords.count(self.snake.pos) != 1:
+            print(self.snake.coords)
+            print(self.snake.pos)
             self.active = False
 
         # Border collision
@@ -104,7 +107,7 @@ class Game:
     def end_input(self):
         events = pg.event.get()
         if Input.quit(events):
-            self.quit()
+            self.done = True
         elif Input.any_key(events):
             self.reset()
 
@@ -122,6 +125,9 @@ class Game:
         txt2.draw(self.window)
 
     def update(self):
+        if self.done:
+            self.quit()
+            return
         if self.active:
             self.input()
             self.collisions()
@@ -129,6 +135,8 @@ class Game:
         else:
             self.end_input()
             self.end_display()
+
+        pg.display.flip()
 
     def reset(self):
         self.score = 0
@@ -214,7 +222,6 @@ def run():
     while running:
         clock.tick(5)
         game.update()
-        pg.display.flip()
 
 
 if __name__ == "__main__":
