@@ -16,7 +16,7 @@ running = True
 
 class Apple:
     def __init__(self, color='red'):
-        self.pos = (random.randint(0, cols), random.randint(0, rows))
+        self.pos = (random.randint(1, cols), random.randint(1, rows))
         self.color = color
 
     def draw(self, window):
@@ -158,38 +158,34 @@ class Input:
     @staticmethod
     def direction(events, current_direction):
         for event in events:
-            if event.type is pg.KEYDOWN:
+            if event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
                     if current_direction[1] != 1:
                         current_direction = (0, -1)
-                        break
                 elif event.key == pg.K_DOWN:
                     if current_direction[1] != -1:
                         current_direction = (0, 1)
-                        break
                 elif event.key == pg.K_LEFT:
                     if current_direction[0] != 1 and current_direction != (0, 0):
                         current_direction = (-1, 0)
-                        break
                 elif event.key == pg.K_RIGHT:
                     if current_direction[0] != -1:
                         current_direction = (1, 0)
-                        break
         return current_direction
 
     @staticmethod
     def any_key(events):
         for event in events:
-            if event.type is pg.KEYDOWN:
+            if event.type == pg.KEYDOWN:
                 return True
         return False
 
     @staticmethod
     def quit(events):
         for event in events:
-            if event.type is pg.QUIT:
+            if event.type == pg.QUIT:
                 return True
-            elif event.type is pg.KEYDOWN:
+            elif event.type == pg.KEYDOWN:
                 key = event.key
                 if key == pg.K_ESCAPE:
                     return True
