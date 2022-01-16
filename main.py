@@ -7,17 +7,19 @@ import random
 import pygame as pg
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = "30, 50"
-windowSize = (700, 540)
-tileSize = 20
+windowSize = (540, 540)
+tileSize = 30
 cols = windowSize[0] / tileSize - 2
 rows = windowSize[1] / tileSize - 2
 running = True
 
 
 class Apple:
-    def __init__(self, color='red'):
-        self.pos = (random.randint(1, cols), random.randint(1, rows))
+    def __init__(self, snake_coords, color='red'):
         self.color = color
+        self.pos = (random.randint(1, cols), random.randint(1, rows))
+        while self.pos in snake_coords:
+            self.pos = (random.randint(1, cols), random.randint(1, rows))
 
     def draw(self, window):
         rect = pg.Rect(self.pos[0]*tileSize, self.pos[1]*tileSize, tileSize, tileSize)
@@ -40,6 +42,7 @@ class Snake:
         self.coords.append(self.pos)
         if len(self.coords) >= self.length:
             self.coords.pop(0)
+        print(self.coords)
 
     def draw(self, window):
         for pos in self.coords:
@@ -59,16 +62,16 @@ class Game:
         self.active = True
         self.done = False
         self.snake = self.setup_snake()
-        self.apple = Apple()
+        self.apple = Apple(self.snake.coords)
 
     @staticmethod
     def setup_snake():
         snake = Snake()
         snake.pos = (9, 8)
-        snake.coords.append((9, 8))
-        snake.coords.append((8, 8))
-        snake.coords.append((7, 8))
         snake.coords.append((6, 8))
+        snake.coords.append((7, 8))
+        snake.coords.append((8, 8))
+        snake.coords.append((9, 8))
         return snake
 
     def input(self):
@@ -83,7 +86,7 @@ class Game:
     def collisions(self):
         # Apple collision
         if self.snake.pos == self.apple.pos:
-            self.apple = Apple()
+            self.apple = Apple(self.snake.coords)
             self.snake.length += 1
 
         # Snake collision
@@ -130,6 +133,7 @@ class Game:
             return
         if self.active:
             self.input()
+            self.snake.move()
             self.collisions()
             self.display()
         else:
