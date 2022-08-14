@@ -159,7 +159,7 @@ class Game:
         score.rect.center = (windowSize[0] / 2, int(tileSize * 1.75))
         score.draw(self.window)
 
-        highscore = Text(str(self.highscore), color="white")
+        highscore = Text("HS: " + str(self.highscore), color="white")
         highscore.rect.midright = (windowSize[0] - tileSize*1.75, int(tileSize * 1.75))
         highscore.draw(self.window)
 
